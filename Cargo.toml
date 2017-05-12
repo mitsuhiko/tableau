@@ -1,0 +1,13 @@
+[package]
+name = "tableau"
+version = "0.1.0"
+authors = ["Armin Ronacher <armin.ronacher@active-4.com>"]
+description = "A table formatting library."
+keywords = ["cli", "table"]
+license = "MIT"
+homepage = "https://github.com/mitsuhiko/tableau"
+documentation = "https://docs.rs/tableau"
+readme = "README.md"
+
+[dependencies]
+console = ">=0.4.2, <1.0.0"
