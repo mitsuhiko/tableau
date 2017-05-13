@@ -58,23 +58,21 @@ impl Table {
         self.column_alignments[idx] = align;
     }
 
-    /// Adds a new row to the table and returns a mutable reference to it.
-    pub fn add_row(&mut self) -> &mut Row {
-        let row = Row {
-            cells: vec![],
-            is_head: false,
-            effective_cell_count: 0,
-        };
+    /// Adds an already constructed row to the table.
+    pub fn add_row(&mut self, row: Row) -> &mut Row {
         let idx = self.rows.len();
         self.rows.push(row);
         &mut self.rows[idx]
     }
 
+    /// Adds a new row to the table and returns a mutable reference to it.
+    pub fn add(&mut self) -> &mut Row {
+        self.add_row(Row::new())
+    }
+
     /// Adds a new header row to a table and returns a mutable reference to it.
-    pub fn add_head_row(&mut self) -> &mut Row {
-        let mut rv = self.add_row();
-        rv.is_head = true;
-        rv
+    pub fn add_head(&mut self) -> &mut Row {
+        self.add_row(Row::new_head())
     }
 
     fn column_widths(&self) -> Vec<usize> {
@@ -99,12 +97,35 @@ impl Table {
 }
 
 impl Row {
-    /// Adds a new call to a table.
+    /// Creates a new row.
+    pub fn new() -> Row {
+        Row {
+            cells: vec![],
+            is_head: false,
+            effective_cell_count: 0,
+        }
+    }
+
+    /// Creates a new head row.
+    pub fn new_head() -> Row {
+        let mut rv = Row::new();
+        rv.is_head = true;
+        rv
+    }
+
+    /// Adds a new call as text to a table.
     ///
     /// This returns a mutable reference to self so that calls can easily
     /// be chained.
-    pub fn add_cell<C: Into<Cell>>(&mut self, cell: C) -> &mut Row {
-        let cell = cell.into();
+    pub fn add<T: ToString>(&mut self, text: T) -> &mut Row {
+        self.add_cell(Cell::new(text))
+    }
+
+    /// Adds a cell to the row.
+    ///
+    /// This returns a mutable reference to self so that calls can easily
+    /// be chained.
+    pub fn add_cell(&mut self, cell: Cell) -> &mut Row {
         self.effective_cell_count += cell.colspan;
         self.cells.push(cell);
         self
@@ -260,11 +281,5 @@ impl Cell {
     pub fn colspan(&mut self, span: usize) -> &mut Cell {
         self.colspan = span;
         self
-    }
-}
-
-impl<S: ToString> From<S> for Cell {
-    fn from(text: S) -> Cell {
-        Cell::new(text.to_string())
     }
 }

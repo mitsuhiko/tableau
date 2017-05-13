@@ -10,30 +10,30 @@ fn main() {
     table.column_style(0, Style::new().cyan());
     table.column_alignment(1, Alignment::Center);
 
-    table.add_head_row()
-        .add_cell("ID")
-        .add_cell("Username")
-        .add_cell("Active");
+    table.add_head()
+        .add("ID")
+        .add("Username")
+        .add("Active");
 
-    table.add_row()
-        .add_cell(1)
-        .add_cell("john_doe")
-        .add_cell("yes");
+    table.add()
+        .add(1)
+        .add("john_doe")
+        .add("yes");
 
-    table.add_row()
-        .add_cell(2)
-        .add_cell("jane_doe")
-        .add_cell("yes");
+    table.add()
+        .add(2)
+        .add("jane_doe")
+        .add("yes");
 
-    table.add_row()
-        .add_cell(3)
-        .add_cell("tazzzz")
-        .add_cell("no");
+    table.add()
+        .add(3)
+        .add("tazzzz")
+        .add("no");
 
-    table.add_row()
-        .add_cell(4)
-        .add_cell("tazzzzzzzzzzzzzzzzz")
-        .add_cell("no");
+    table.add()
+        .add(4)
+        .add("tazzzzzzzzzzzzzzzzz")
+        .add("no");
 
     table.display();
 }
