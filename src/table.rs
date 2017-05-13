@@ -27,6 +27,8 @@ pub struct Row {
 pub struct Table {
     rows: Vec<Row>,
     style: TableStyle,
+    column_styles: Vec<Option<Style>>,
+    column_alignments: Vec<Alignment>,
 }
 
 impl Table {
@@ -35,7 +37,25 @@ impl Table {
         Table {
             rows: vec![],
             style: Default::default(),
+            column_styles: vec![],
+            column_alignments: vec![],
         }
+    }
+
+    /// Sets the default column style.
+    pub fn column_style(&mut self, idx: usize, style: Style) {
+        if self.column_styles.len() < idx + 1 {
+            self.column_styles.resize(idx + 1, None);
+        }
+        self.column_styles[idx] = Some(style);
+    }
+
+    /// Sets the default column align.
+    pub fn column_alignment(&mut self, idx: usize, align: Alignment) {
+        if self.column_alignments.len() < idx + 1 {
+            self.column_alignments.resize(idx + 1, Alignment::Left);
+        }
+        self.column_alignments[idx] = align;
     }
 
     /// Adds a new row to the table and returns a mutable reference to it.
@@ -57,27 +77,15 @@ impl Table {
         rv
     }
 
-    fn inner_dimensions(&self) -> (usize, usize) {
-        let mut width = 0;
-        for row in &self.rows {
-            width = max(width, row.calculate_widths(
-                &self.style).into_iter().sum());
-        }
-        (width, self.rows.len())
-    }
-
     fn column_widths(&self) -> Vec<usize> {
         let mut widths = vec![];
-        let mut off = 0;
         for row in &self.rows {
-            for cell in row.cells.iter().enumerate() {
-                let row_widths = row.calculate_widths(&self.style);
-                if row_widths.len() > widths.len() {
-                    widths.resize(row_widths.len(), 0);
-                }
-                for (idx, width) in row_widths.into_iter().enumerate() {
-                    widths[idx] = max(widths[idx], width);
-                }
+            let row_widths = row.calculate_widths(&self.style);
+            if row_widths.len() > widths.len() {
+                widths.resize(row_widths.len(), 0);
+            }
+            for (idx, width) in row_widths.into_iter().enumerate() {
+                widths[idx] = max(widths[idx], width);
             }
         }
         widths
@@ -104,8 +112,7 @@ impl Row {
 
     fn calculate_widths(&self, style: &TableStyle) -> Vec<usize> {
         let mut cols = vec![];
-        let last_cell = self.cells.len() - 1;
-        for (idx, cell) in self.cells.iter().enumerate() {
+        for cell in &self.cells {
             let width = cell.inner_width() + (style.padding_left + style.padding_right) as usize;
             cols.extend_from_slice(&evenly_split_width(width, cell.colspan));
         }
@@ -118,7 +125,6 @@ impl fmt::Display for Table {
         fn line(f: &mut fmt::Formatter, w: &[usize], c: Option<char>, c_left: Option<char>,
                 c_mid: Option<char>, c_right: Option<char>) -> fmt::Result
         {
-            use std::fmt::Write;
             let mut rv = String::new();
             if let Some(s) = c_left {
                 rv.push(s);
@@ -149,11 +155,11 @@ impl fmt::Display for Table {
         for (idx, row) in self.rows.iter().enumerate() {
             let mut buf = String::new();
             if row.is_head || was_head {
-                line(f, &widths[..], s.head, s.head_left, s.head_mid, s.head_right);
+                line(f, &widths[..], s.head, s.head_left, s.head_mid, s.head_right)?;
             } else if idx == 0 {
-                line(f, &widths[..], s.top, s.top_left, s.top_mid, s.top_right);
+                line(f, &widths[..], s.top, s.top_left, s.top_mid, s.top_right)?;
             } else {
-                line(f, &widths[..], s.mid, s.mid_left, s.mid_mid, s.mid_right);
+                line(f, &widths[..], s.mid, s.mid_left, s.mid_mid, s.mid_right)?;
             }
             let last_cell = row.cells.len() - 1;
             let mut offset = 0;
@@ -171,15 +177,24 @@ impl fmt::Display for Table {
                 for _ in 0..s.padding_left {
                     buf.push(' ');
                 }
+
                 let text = c.contents.as_ref().map(|x| x.as_str()).unwrap_or("");
-                let style = c.style.as_ref().unwrap_or_else(|| {
+
+                let no_style = None;
+                let style = c.style.as_ref().or_else(|| {
+                    if row.is_head {
+                        None
+                    } else {
+                        self.column_styles.get(idx).unwrap_or(&no_style).as_ref()
+                    }
+                }).unwrap_or_else(|| {
                     if row.is_head {
                         &s.default_header_style
                     } else {
                         &s.default_text_style
                     }
                 });
-                let inner_width = measure_text_width(text);
+
                 let cell_width = 
                     widths[idx..idx + c.colspan].into_iter().sum::<usize>() -
                     (s.padding_left + s.padding_right) as usize +
@@ -189,11 +204,10 @@ impl fmt::Display for Table {
                         0
                     };
                 let alignment = c.alignment.unwrap_or_else(|| {
-                    if row.is_head {
-                        Alignment::Center
-                    } else {
-                        Alignment::Left
-                    }
+                    self.column_alignments
+                        .get(idx)
+                        .map(|x| *x)
+                        .unwrap_or(Alignment::Left)
                 });
                 buf.push_str(&pad_str(&style.apply_to(text).to_string(),
                     cell_width, alignment, None));
@@ -207,9 +221,9 @@ impl fmt::Display for Table {
                 }
                 offset += c.colspan - 1;
             }
-            write!(f, "{}\n", buf);
+            write!(f, "{}\n", buf)?;
             if idx == last_row {
-                line(f, &widths[..], s.bottom, s.bottom_left, s.bottom_mid, s.bottom_right);
+                line(f, &widths[..], s.bottom, s.bottom_left, s.bottom_mid, s.bottom_right)?;
             }
             was_head = row.is_head;
         }

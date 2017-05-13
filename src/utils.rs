@@ -7,7 +7,7 @@ pub fn evenly_split_width(width: usize, cols: usize) -> Vec<usize> {
     let mut error = 0.0f32;
     let mut total_size = 0;
 
-    for idx in 0..cols {
+    for _ in 0..cols {
         let t = width as f32 / cols as f32;
         let mut w = t as usize;
         error += t.fract();

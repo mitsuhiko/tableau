@@ -62,7 +62,7 @@ impl Default for TableStyle {
 }
 
 impl TableStyle {
-    fn full_unicode() -> TableStyle {
+    pub fn full_unicode() -> TableStyle {
         TableStyle {
             top: Some('─'),
             top_mid: Some('┬'),
@@ -88,7 +88,7 @@ impl TableStyle {
         }
     }
 
-    fn full_ascii() -> TableStyle {
+    pub fn full_ascii() -> TableStyle {
         TableStyle {
             top: Some('-'),
             top_mid: Some('+'),
@@ -113,7 +113,7 @@ impl TableStyle {
         }
     }
 
-    fn compact_ascii() -> TableStyle {
+    pub fn compact_ascii() -> TableStyle {
         TableStyle {
             top: Some('-'),
             top_mid: Some('+'),
